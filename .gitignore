@@ -1,0 +1,7 @@
+.aider*
+.venv/
+aarch64/
+aider
+ppc64le/
+s390x/
+x86_64/
