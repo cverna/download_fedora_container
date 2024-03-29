@@ -30,7 +30,7 @@ def download_artifacts_for_architecture(client, base_url, architecture, mini):
             os.path.join(architecture, link.get("href")),
         )
         for link in soup.find_all("a")
-        if link.get("href").endswith(".tar.xz") and ("Base" in link.get("href") and ("Minimal" in link.get("href") if mini else "Generic" in link.get("href")))
+        if link.get("href").endswith(".tar.xz") and "Base" in link.get("href") and (mini or "Minimal" not in link.get("href"))
     ]
     return file_urls
 
