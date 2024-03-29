@@ -62,10 +62,12 @@ def main(version, mini):
                     print(f"{filename} generated an exception: {exc}")
                 else:
                     print(f"Downloaded {data}")
-                    decompress_artifact(filename)
+                    decompress_artifact(filename, version)
 
 
-def process_artifact(extracted_path):
+from jinja2 import Environment, FileSystemLoader
+
+def process_artifact(extracted_path, version):
     index_path = os.path.join(extracted_path, "index.json")
     with open(index_path, "r") as index_file:
         index_data = json.load(index_file)
@@ -78,8 +80,18 @@ def process_artifact(extracted_path):
             shutil.copy(layer_path, os.path.join(extracted_path, "layer.tar"))
             print(f"Copied layer blob to 'layer.tar' in {extracted_path}.")
 
+    # Render Dockerfile from template
+    env = Environment(loader=FileSystemLoader('templates'))
+    template = env.get_template('Dockerfile')
+    rendered_version = 'rawhide' if version.lower() == 'rawhide' else f'f{version}'
+    dockerfile_content = template.render(version=rendered_version)
+    dockerfile_path = os.path.join(extracted_path, 'Dockerfile')
+    with open(dockerfile_path, 'w') as dockerfile:
+        dockerfile.write(dockerfile_content)
+    print(f"Rendered Dockerfile in {extracted_path}.")
 
-def decompress_artifact(artifact_path):
+
+def decompress_artifact(artifact_path, version):
     if artifact_path.endswith(".tar.xz"):
         print(f"Decompressing {artifact_path}...")
         # Decompress the .xz file
@@ -92,7 +104,7 @@ def decompress_artifact(artifact_path):
         print(f"Decompressed and extracted {artifact_path}")
         # Ensure we pass the directory path without the file extension
         decompressed_dir = os.path.split(artifact_path)[0]
-        process_artifact(decompressed_dir)
+        process_artifact(decompressed_dir, version)
 
 
 if __name__ == "__main__":
