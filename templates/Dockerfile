@@ -2,3 +2,4 @@
 FROM {{ base_image }}
 ENV DISTTAG=f{{ tag }}container FGC=f{{ tag }} FBR=f{{ tag }}
 ADD {{ result_tar }} /
+CMD ["/bin/bash"]
