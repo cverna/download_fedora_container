@@ -1,17 +1,15 @@
 import os
 import sys
+import subprocess
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import aiohttp
 import asyncio
 
-async def download_file(session, url, local_filename):
+async def download_file(url, local_filename):
     print(f'Starting download of {local_filename}...')
-    async with session.get(url) as response:
-        response.raise_for_status()
-        with open(local_filename, 'wb') as f:
-            async for chunk in response.content.iter_chunked(10 * 1024):
-                f.write(chunk)
+    os.makedirs(os.path.dirname(local_filename), exist_ok=True)
+    subprocess.run(['curl', '-L', url, '-o', local_filename], check=True)
     return local_filename
 
 async def download_artifacts_for_architecture(session, base_url, architecture):
@@ -34,7 +32,7 @@ async def main_async(version):
             file_urls = await download_artifacts_for_architecture(session, base_url, arch)
             for file_url, filename in file_urls:
                 os.makedirs(os.path.dirname(filename), exist_ok=True)
-                task = asyncio.ensure_future(download_file(session, file_url, filename))
+                task = asyncio.ensure_future(download_file(file_url, filename))
                 tasks.append(task)
         completed, pending = await asyncio.wait(tasks)
         for task in completed:
