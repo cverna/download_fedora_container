@@ -67,6 +67,7 @@ def main(version, mini):
 
 from jinja2 import Environment, FileSystemLoader
 
+
 def process_artifact(extracted_path, version):
     index_path = os.path.join(extracted_path, "index.json")
     with open(index_path, "r") as index_file:
@@ -81,12 +82,12 @@ def process_artifact(extracted_path, version):
             print(f"Copied layer blob to 'layer.tar' in {extracted_path}.")
 
     # Render Dockerfile from template
-    env = Environment(loader=FileSystemLoader('templates'))
-    template = env.get_template('Dockerfile')
-    rendered_version = 'rawhide' if version.lower() == 'rawhide' else f'f{version}'
+    env = Environment(loader=FileSystemLoader("templates"))
+    template = env.get_template("Dockerfile")
+    rendered_version = "rawhide" if version.lower() == "rawhide" else f"f{version}"
     dockerfile_content = template.render(version=rendered_version)
-    dockerfile_path = os.path.join(extracted_path, 'Dockerfile')
-    with open(dockerfile_path, 'w') as dockerfile:
+    dockerfile_path = os.path.join(extracted_path, "Dockerfile")
+    with open(dockerfile_path, "w") as dockerfile:
         dockerfile.write(dockerfile_content)
     print(f"Rendered Dockerfile in {extracted_path}.")
 
