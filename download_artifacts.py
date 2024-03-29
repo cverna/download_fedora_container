@@ -4,7 +4,7 @@ import subprocess
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import httpx
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def download_file(url, local_filename):
     print(f'Starting download of {local_filename}...')
@@ -36,7 +36,7 @@ def main(version):
                     os.makedirs(os.path.dirname(filename), exist_ok=True)
                     future = executor.submit(download_file, file_url, filename)
                     future_to_url[future] = filename
-            for future in concurrent.futures.as_completed(future_to_url):
+            for future in as_completed(future_to_url):
                 filename = future_to_url[future]
                 try:
                     data = future.result()
