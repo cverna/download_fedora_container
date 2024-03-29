@@ -46,12 +46,6 @@ def main(version):
                     print(f'Downloaded {data}')
                     decompress_artifact(filename)
 
-if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python download_artifacts.py <version>")
-        sys.exit(1)
-    version = sys.argv[1]
-    main(version)
 import tarfile
 
 def decompress_artifact(artifact_path):
@@ -65,3 +59,10 @@ def decompress_artifact(artifact_path):
             tar.extractall(path=os.path.dirname(tar_path))
         os.remove(tar_path)
         print(f'Decompressed and extracted {artifact_path}')
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print("Usage: python download_artifacts.py <version>")
+        sys.exit(1)
+    version = sys.argv[1]
+    main(version)
