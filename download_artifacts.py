@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 def download_file(url, local_filename):
     with requests.get(url, stream=True) as r:
@@ -18,19 +19,22 @@ def download_artifacts_for_architecture(base_url, architecture):
     response = requests.get(arch_url)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, 'html.parser')
-    for link in soup.find_all('a'):
-        file_url = urljoin(arch_url, link.get('href'))
-        if file_url.endswith('.tar.xz'):
-            filename = os.path.join(architecture, link.get('href'))
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
-            print(f'Downloading {file_url}...')
-            download_file(file_url, filename)
+    file_urls = [(urljoin(arch_url, link.get('href')), os.path.join(architecture, link.get('href')))
+                 for link in soup.find_all('a') if link.get('href').endswith('.tar.xz')]
+    return file_urls
 
 def main(version):
     base_url = f'https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version}/compose/Container/'
     architectures = ['aarch64', 'ppc64le', 's390x', 'x86_64']
-    for arch in architectures:
-        download_artifacts_for_architecture(base_url, arch)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = []
+        for arch in architectures:
+            file_urls = download_artifacts_for_architecture(base_url, arch)
+            for file_url, filename in file_urls:
+                os.makedirs(os.path.dirname(filename), exist_ok=True)
+                futures.append(executor.submit(download_file, file_url, filename))
+        for future in futures:
+            print(f'Downloaded {future.result()}')
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
