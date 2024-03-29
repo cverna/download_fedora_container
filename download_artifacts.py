@@ -24,7 +24,8 @@ def download_artifacts_for_architecture(client, base_url, architecture):
 
 # This is the new location for the main_async function
 def main(version):
-    base_url = f'https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version}/compose/Container/'
+    version_url_part = version.capitalize() if version.lower() == 'rawhide' else version
+    base_url = f'https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/'
     architectures = ['aarch64', 'ppc64le', 's390x', 'x86_64']
     with httpx.Client() as client:
         with ThreadPoolExecutor(max_workers=4) as executor:
