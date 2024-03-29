@@ -1,14 +1,15 @@
-import os
 import argparse
-import sys
-import subprocess
-import shutil
-from bs4 import BeautifulSoup
-from urllib.parse import urljoin
-import httpx
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import tarfile
 import json
+import os
+import shutil
+import subprocess
+import sys
+import tarfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import urljoin
+
+import httpx
+from bs4 import BeautifulSoup
 
 
 def download_file(url, local_filename):
@@ -30,7 +31,9 @@ def download_artifacts_for_architecture(client, base_url, architecture, mini):
             os.path.join(architecture, link.get("href")),
         )
         for link in soup.find_all("a")
-        if link.get("href").endswith(".tar.xz") and "Base" in link.get("href") and (mini or "Minimal" not in link.get("href"))
+        if link.get("href").endswith(".tar.xz")
+        and "Base" in link.get("href")
+        and (mini or "Minimal" not in link.get("href"))
     ]
     return file_urls
 
@@ -44,7 +47,9 @@ def main(version, mini):
         with ThreadPoolExecutor(max_workers=4) as executor:
             future_to_url = {}
             for arch in architectures:
-                file_urls = download_artifacts_for_architecture(client, base_url, arch, mini)
+                file_urls = download_artifacts_for_architecture(
+                    client, base_url, arch, mini
+                )
                 for file_url, filename in file_urls:
                     os.makedirs(os.path.dirname(filename), exist_ok=True)
                     future = executor.submit(download_file, file_url, filename)
@@ -70,9 +75,8 @@ def process_artifact(extracted_path):
             manifest_data = json.load(manifest_file)
             layers_digest = manifest_data["layers"][0]["digest"].split(":")[1]
             layer_path = os.path.join(extracted_path, "blobs", "sha256", layers_digest)
-            artifact_dir = os.path.dirname(artifact_path)
-            shutil.copy(layer_path, os.path.join(artifact_dir, "layer.tar"))
-            print(f"Copied layer blob to 'layer.tar' in {artifact_dir}.")
+            shutil.copy(layer_path, os.path.join(extracted_path, "layer.tar"))
+            print(f"Copied layer blob to 'layer.tar' in {extracted_path}.")
 
 
 def decompress_artifact(artifact_path):
@@ -88,14 +92,15 @@ def decompress_artifact(artifact_path):
         print(f"Decompressed and extracted {artifact_path}")
         # Ensure we pass the directory path without the file extension
         decompressed_dir = os.path.split(artifact_path)[0]
-        print(f"decompressed_dir {decompressed_dir}")
         process_artifact(decompressed_dir)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download Fedora container artifacts.")
     parser.add_argument("version", help="The version of Fedora artifacts to download.")
-    parser.add_argument("--mini", action="store_true", help="Download only the minimal base artifact.")
+    parser.add_argument(
+        "--mini", action="store_true", help="Download only the minimal base artifact."
+    )
     args = parser.parse_args()
-    
+
     main(args.version, args.mini)
