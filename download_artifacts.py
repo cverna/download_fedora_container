@@ -1,11 +1,13 @@
 import os
 import sys
 import subprocess
+import shutil
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import httpx
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tarfile
+import json
 
 
 def download_file(url, local_filename):
@@ -67,6 +69,7 @@ def decompress_artifact(artifact_path):
             tar.extractall(path=os.path.dirname(tar_path))
         os.remove(tar_path)
         print(f"Decompressed and extracted {artifact_path}")
+        process_artifact(artifact_path.rstrip('.tar.xz'))
 
 
 if __name__ == "__main__":
@@ -75,3 +78,15 @@ if __name__ == "__main__":
         sys.exit(1)
     version = sys.argv[1]
     main(version)
+def process_artifact(extracted_path):
+    index_path = os.path.join(extracted_path, 'index.json')
+    with open(index_path, 'r') as index_file:
+        index_data = json.load(index_file)
+        digest = index_data['manifests'][0]['digest'].split(':')[1]
+        manifest_path = os.path.join(extracted_path, 'blobs', 'sha256', digest)
+        with open(manifest_path, 'r') as manifest_file:
+            manifest_data = json.load(manifest_file)
+            layers_digest = manifest_data['layers'][0]['digest'].split(':')[1]
+            layer_path = os.path.join(extracted_path, 'blobs', 'sha256', layers_digest)
+            shutil.copy(layer_path, 'layer.tar')
+            print(f"Copied layer blob to 'layer.tar' in the current directory.")
