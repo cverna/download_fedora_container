@@ -70,8 +70,9 @@ def process_artifact(extracted_path):
             manifest_data = json.load(manifest_file)
             layers_digest = manifest_data["layers"][0]["digest"].split(":")[1]
             layer_path = os.path.join(extracted_path, "blobs", "sha256", layers_digest)
-            shutil.copy(layer_path, "layer.tar")
-            print(f"Copied layer blob to 'layer.tar' in the current directory.")
+            artifact_dir = os.path.dirname(artifact_path)
+            shutil.copy(layer_path, os.path.join(artifact_dir, "layer.tar"))
+            print(f"Copied layer blob to 'layer.tar' in {artifact_dir}.")
 
 
 def decompress_artifact(artifact_path):
