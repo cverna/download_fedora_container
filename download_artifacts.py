@@ -1,6 +1,5 @@
 import os
 import sys
-import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import aiohttp
@@ -15,11 +14,12 @@ async def download_file(session, url, local_filename):
                 f.write(chunk)
     return local_filename
 
-def download_artifacts_for_architecture(base_url, architecture):
+async def download_artifacts_for_architecture(session, base_url, architecture):
     arch_url = urljoin(base_url, architecture + '/images/')
-    response = requests.get(arch_url)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, 'html.parser')
+    async with session.get(arch_url) as response:
+        response.raise_for_status()
+        text = await response.text()
+        soup = BeautifulSoup(text, 'html.parser')
     file_urls = [(urljoin(arch_url, link.get('href')), os.path.join(architecture, link.get('href')))
                  for link in soup.find_all('a') if link.get('href').endswith('.tar.xz')]
     return file_urls
@@ -27,13 +27,13 @@ def download_artifacts_for_architecture(base_url, architecture):
 def main(version):
     base_url = f'https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version}/compose/Container/'
     architectures = ['aarch64', 'ppc64le', 's390x', 'x86_64']
-    async def main(version):
+    async def main_async(version):
         base_url = f'https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version}/compose/Container/'
         architectures = ['aarch64', 'ppc64le', 's390x', 'x86_64']
         async with aiohttp.ClientSession() as session:
             tasks = []
             for arch in architectures:
-                file_urls = download_artifacts_for_architecture(base_url, arch)
+                file_urls = await download_artifacts_for_architecture(session, base_url, arch)
                 for file_url, filename in file_urls:
                     os.makedirs(os.path.dirname(filename), exist_ok=True)
                     task = asyncio.ensure_future(download_file(session, file_url, filename))
@@ -42,12 +42,7 @@ def main(version):
             for task in completed:
                 print(f'Downloaded {task.result()}')
 
-    if __name__ == '__main__':
-        if len(sys.argv) != 2:
-            print("Usage: python download_artifacts.py <version>")
-            sys.exit(1)
-        version = sys.argv[1]
-        asyncio.run(main(version))
+    # This block is no longer needed as we have moved the main_async function outside
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -55,3 +50,25 @@ if __name__ == '__main__':
         sys.exit(1)
     version = sys.argv[1]
     main(version)
+# This is the new location for the main_async function
+async def main_async(version):
+    base_url = f'https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version}/compose/Container/'
+    architectures = ['aarch64', 'ppc64le', 's390x', 'x86_64']
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for arch in architectures:
+            file_urls = await download_artifacts_for_architecture(session, base_url, arch)
+            for file_url, filename in file_urls:
+                os.makedirs(os.path.dirname(filename), exist_ok=True)
+                task = asyncio.ensure_future(download_file(session, file_url, filename))
+                tasks.append(task)
+        completed, pending = await asyncio.wait(tasks)
+        for task in completed:
+            print(f'Downloaded {task.result()}')
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print("Usage: python download_artifacts.py <version>")
+        sys.exit(1)
+    version = sys.argv[1]
+    asyncio.run(main_async(version))
