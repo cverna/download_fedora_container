@@ -17,7 +17,7 @@ def download_artifacts_for_architecture(client, base_url, architecture):
     response = client.get(arch_url)
     response.raise_for_status()
     text = response.text
-        soup = BeautifulSoup(text, 'html.parser')
+    soup = BeautifulSoup(text, 'html.parser')
     file_urls = [(urljoin(arch_url, link.get('href')), os.path.join(architecture, link.get('href')))
                  for link in soup.find_all('a') if link.get('href').endswith('.tar.xz')]
     return file_urls
