@@ -44,6 +44,7 @@ def main(version):
                     print(f'{filename} generated an exception: {exc}')
                 else:
                     print(f'Downloaded {data}')
+                    decompress_artifact(filename)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -51,3 +52,16 @@ if __name__ == '__main__':
         sys.exit(1)
     version = sys.argv[1]
     main(version)
+import tarfile
+
+def decompress_artifact(artifact_path):
+    if artifact_path.endswith('.tar.xz'):
+        print(f'Decompressing {artifact_path}...')
+        # Decompress the .xz file
+        subprocess.run(['xz', '-d', artifact_path], check=True)
+        # Extract the .tar file
+        tar_path = artifact_path.rstrip('.xz')
+        with tarfile.open(tar_path) as tar:
+            tar.extractall(path=os.path.dirname(tar_path))
+        os.remove(tar_path)
+        print(f'Decompressed and extracted {artifact_path}')
