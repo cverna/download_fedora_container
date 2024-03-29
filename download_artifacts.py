@@ -85,7 +85,7 @@ def decompress_artifact(artifact_path):
         os.remove(tar_path)
         print(f"Decompressed and extracted {artifact_path}")
         # Ensure we pass the directory path without the file extension
-        decompressed_dir = os.path.splitext(artifact_path)[0]
+        decompressed_dir = os.path.split(artifact_path)[0]
         print(f"decompressed_dir {decompressed_dir}")
         process_artifact(decompressed_dir)
 
