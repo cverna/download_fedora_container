@@ -37,7 +37,8 @@ def download_artifacts_for_architecture(client, base_url, architecture):
 def main(version):
     version_url_part = version.capitalize() if version.lower() == "rawhide" else version
     base_url = f"https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/"
-    architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
+    #architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
+    architectures = ["x86_64"]
     with httpx.Client() as client:
         with ThreadPoolExecutor(max_workers=4) as executor:
             future_to_url = {}
@@ -57,18 +58,20 @@ def main(version):
                     print(f"Downloaded {data}")
                     decompress_artifact(filename)
 
+
 def process_artifact(extracted_path):
-    index_path = os.path.join(extracted_path, 'index.json')
-    with open(index_path, 'r') as index_file:
+    index_path = os.path.join(extracted_path, "index.json")
+    with open(index_path, "r") as index_file:
         index_data = json.load(index_file)
-        digest = index_data['manifests'][0]['digest'].split(':')[1]
-        manifest_path = os.path.join(extracted_path, 'blobs', 'sha256', digest)
-        with open(manifest_path, 'r') as manifest_file:
+        digest = index_data["manifests"][0]["digest"].split(":")[1]
+        manifest_path = os.path.join(extracted_path, "blobs", "sha256", digest)
+        with open(manifest_path, "r") as manifest_file:
             manifest_data = json.load(manifest_file)
-            layers_digest = manifest_data['layers'][0]['digest'].split(':')[1]
-            layer_path = os.path.join(extracted_path, 'blobs', 'sha256', layers_digest)
-            shutil.copy(layer_path, 'layer.tar')
+            layers_digest = manifest_data["layers"][0]["digest"].split(":")[1]
+            layer_path = os.path.join(extracted_path, "blobs", "sha256", layers_digest)
+            shutil.copy(layer_path, "layer.tar")
             print(f"Copied layer blob to 'layer.tar' in the current directory.")
+
 
 def decompress_artifact(artifact_path):
     if artifact_path.endswith(".tar.xz"):
@@ -83,6 +86,7 @@ def decompress_artifact(artifact_path):
         print(f"Decompressed and extracted {artifact_path}")
         # Ensure we pass the directory path without the file extension
         decompressed_dir = os.path.splitext(artifact_path)[0]
+        print(f"decompressed_dir {decompressed_dir}")
         process_artifact(decompressed_dir)
 
 
