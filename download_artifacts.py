@@ -3,15 +3,15 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import ThreadPoolExecutor
+import aiohttp
+import asyncio
 
-def download_file(url, local_filename):
+async def download_file(session, url, local_filename):
     print(f'Starting download of {local_filename}...')
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
+    async with session.get(url) as response:
+        response.raise_for_status()
         with open(local_filename, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=10 * 1024):
+            async for chunk in response.content.iter_chunked(10 * 1024):
                 f.write(chunk)
     return local_filename
 
@@ -27,15 +27,27 @@ def download_artifacts_for_architecture(base_url, architecture):
 def main(version):
     base_url = f'https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version}/compose/Container/'
     architectures = ['aarch64', 'ppc64le', 's390x', 'x86_64']
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = []
-        for arch in architectures:
-            file_urls = download_artifacts_for_architecture(base_url, arch)
-            for file_url, filename in file_urls:
-                os.makedirs(os.path.dirname(filename), exist_ok=True)
-                futures.append(executor.submit(download_file, file_url, filename))
-        for future in futures:
-            print(f'Downloaded {future.result()}')
+    async def main(version):
+        base_url = f'https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version}/compose/Container/'
+        architectures = ['aarch64', 'ppc64le', 's390x', 'x86_64']
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for arch in architectures:
+                file_urls = download_artifacts_for_architecture(base_url, arch)
+                for file_url, filename in file_urls:
+                    os.makedirs(os.path.dirname(filename), exist_ok=True)
+                    task = asyncio.ensure_future(download_file(session, file_url, filename))
+                    tasks.append(task)
+            completed, pending = await asyncio.wait(tasks)
+            for task in completed:
+                print(f'Downloaded {task.result()}')
+
+    if __name__ == '__main__':
+        if len(sys.argv) != 2:
+            print("Usage: python download_artifacts.py <version>")
+            sys.exit(1)
+        version = sys.argv[1]
+        asyncio.run(main(version))
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
