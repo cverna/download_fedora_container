@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
 
 def download_file(url, local_filename):
+    print(f'Starting download of {local_filename}...')
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(local_filename, 'wb') as f:
@@ -31,7 +32,6 @@ def main(version):
         for arch in architectures:
             file_urls = download_artifacts_for_architecture(base_url, arch)
             for file_url, filename in file_urls:
-                print(f'Starting download of {filename}...')
                 os.makedirs(os.path.dirname(filename), exist_ok=True)
                 futures.append(executor.submit(download_file, file_url, filename))
         for future in futures:
