@@ -1,4 +1,5 @@
 import os
+import argparse
 import sys
 import subprocess
 import shutil
@@ -29,12 +30,12 @@ def download_artifacts_for_architecture(client, base_url, architecture):
             os.path.join(architecture, link.get("href")),
         )
         for link in soup.find_all("a")
-        if link.get("href").endswith(".tar.xz") and "Base" in link.get("href")
+        if link.get("href").endswith(".tar.xz") and ("Base" in link.get("href") and ("Minimal" in link.get("href") if mini else "Generic" in link.get("href")))
     ]
     return file_urls
 
 
-def main(version):
+def main(version, mini):
     version_url_part = version.capitalize() if version.lower() == "rawhide" else version
     base_url = f"https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/"
     # architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
@@ -91,8 +92,9 @@ def decompress_artifact(artifact_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python download_artifacts.py <version>")
-        sys.exit(1)
-    version = sys.argv[1]
-    main(version)
+    parser = argparse.ArgumentParser(description="Download Fedora container artifacts.")
+    parser.add_argument("version", help="The version of Fedora artifacts to download.")
+    parser.add_argument("--mini", action="store_true", help="Download only the minimal base artifact.")
+    args = parser.parse_args()
+    
+    main(args.version, args.mini)
