@@ -1,4 +1,5 @@
 import os
+import sys
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
@@ -24,11 +25,15 @@ def download_artifacts_for_architecture(base_url, architecture):
             print(f'Downloading {file_url}...')
             download_file(file_url, filename)
 
-def main():
-    base_url = 'https://kojipkgs.fedoraproject.org/compose/40/latest-Fedora-40/compose/Container/'
+def main(version):
+    base_url = f'https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version}/compose/Container/'
     architectures = ['aarch64', 'ppc64le', 's390x', 'x86_64']
     for arch in architectures:
         download_artifacts_for_architecture(base_url, arch)
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) != 2:
+        print("Usage: python download_artifacts.py <version>")
+        sys.exit(1)
+    version = sys.argv[1]
+    main(version)
