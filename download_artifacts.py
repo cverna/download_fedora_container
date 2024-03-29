@@ -19,7 +19,8 @@ def download_artifacts_for_architecture(client, base_url, architecture):
     text = response.text
     soup = BeautifulSoup(text, 'html.parser')
     file_urls = [(urljoin(arch_url, link.get('href')), os.path.join(architecture, link.get('href')))
-                 for link in soup.find_all('a') if link.get('href').endswith('.tar.xz')]
+                 for link in soup.find_all('a') if link.get('href').endswith('.tar.xz') and 
+                 ('Fedora-Container-Base-Generic' in link.get('href') or 'Fedora-Container-Base-Generic-Minimal' in link.get('href'))]
     return file_urls
 
 # This is the new location for the main_async function
