@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 def download_file(url, local_filename):
     print(f'Starting download of {local_filename}...')
     os.makedirs(os.path.dirname(local_filename), exist_ok=True)
-    subprocess.run(['curl', '-L', url, '-o', local_filename], check=True)
+    subprocess.run(['curl', '-s', '-L', url, '-o', local_filename], check=True)
     return local_filename
 
 def download_artifacts_for_architecture(client, base_url, architecture):
