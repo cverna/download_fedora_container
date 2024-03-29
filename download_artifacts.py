@@ -68,18 +68,23 @@ def main(version, mini):
 from jinja2 import Environment, FileSystemLoader
 
 
-def process_artifact(extracted_path, version):
-    index_path = os.path.join(extracted_path, "index.json")
+def get_digest_from_index(index_path):
     with open(index_path, "r") as index_file:
         index_data = json.load(index_file)
-        digest = index_data["manifests"][0]["digest"].split(":")[1]
-        manifest_path = os.path.join(extracted_path, "blobs", "sha256", digest)
-        with open(manifest_path, "r") as manifest_file:
-            manifest_data = json.load(manifest_file)
-            layers_digest = manifest_data["layers"][0]["digest"].split(":")[1]
-            layer_path = os.path.join(extracted_path, "blobs", "sha256", layers_digest)
-            shutil.copy(layer_path, os.path.join(extracted_path, "layer.tar"))
-            print(f"Copied layer blob to 'layer.tar' in {extracted_path}.")
+    return index_data["manifests"][0]["digest"].split(":")[1]
+
+def copy_layer_blob_to_tar(extracted_path, digest):
+    manifest_path = os.path.join(extracted_path, "blobs", "sha256", digest)
+    with open(manifest_path, "r") as manifest_file:
+        manifest_data = json.load(manifest_file)
+    layers_digest = manifest_data["layers"][0]["digest"].split(":")[1]
+    layer_path = os.path.join(extracted_path, "blobs", "sha256", layers_digest)
+    shutil.copy(layer_path, os.path.join(extracted_path, "layer.tar"))
+    print(f"Copied layer blob to 'layer.tar' in {extracted_path}.")
+
+def process_artifact(extracted_path, version):
+    digest = get_digest_from_index(os.path.join(extracted_path, "index.json"))
+    copy_layer_blob_to_tar(extracted_path, digest)
 
     # Render Dockerfile from template
     env = Environment(loader=FileSystemLoader("templates"))
