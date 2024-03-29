@@ -81,7 +81,9 @@ def decompress_artifact(artifact_path):
             tar.extractall(path=os.path.dirname(tar_path))
         os.remove(tar_path)
         print(f"Decompressed and extracted {artifact_path}")
-        process_artifact(artifact_path.rstrip('.tar.xz'))
+        # Ensure we pass the directory path without the file extension
+        decompressed_dir = os.path.splitext(artifact_path)[0]
+        process_artifact(decompressed_dir)
 
 
 if __name__ == "__main__":
