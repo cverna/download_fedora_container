@@ -37,7 +37,7 @@ def download_artifacts_for_architecture(client, base_url, architecture):
 def main(version):
     version_url_part = version.capitalize() if version.lower() == "rawhide" else version
     base_url = f"https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/"
-    #architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
+    # architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
     architectures = ["x86_64"]
     with httpx.Client() as client:
         with ThreadPoolExecutor(max_workers=4) as executor:
