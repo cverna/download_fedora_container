@@ -18,7 +18,7 @@ def download_file(url, local_filename):
     return local_filename
 
 
-def download_artifacts_for_architecture(client, base_url, architecture):
+def download_artifacts_for_architecture(client, base_url, architecture, mini):
     arch_url = urljoin(base_url, architecture + "/images/")
     response = client.get(arch_url)
     response.raise_for_status()
@@ -44,7 +44,7 @@ def main(version, mini):
         with ThreadPoolExecutor(max_workers=4) as executor:
             future_to_url = {}
             for arch in architectures:
-                file_urls = download_artifacts_for_architecture(client, base_url, arch)
+                file_urls = download_artifacts_for_architecture(client, base_url, arch, mini)
                 for file_url, filename in file_urls:
                     os.makedirs(os.path.dirname(filename), exist_ok=True)
                     future = executor.submit(download_file, file_url, filename)
