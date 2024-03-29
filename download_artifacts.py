@@ -3,6 +3,7 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+from concurrent.futures import ThreadPoolExecutor
 
 def download_file(url, local_filename):
     with requests.get(url, stream=True) as r:
