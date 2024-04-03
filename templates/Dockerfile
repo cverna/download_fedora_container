@@ -1,5 +1,5 @@
 # This is a Jinja2 compatible Dockerfile template
 FROM scratch
-ENV DISTTAG=f{{ tag }}container FGC=f{{ tag }} FBR=f{{ tag }}
+ENV DISTTAG={{ version }}container FGC={{ version }} FBR={{ version }}
 ADD layer.tar /
 CMD ["/bin/bash"]

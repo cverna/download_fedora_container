@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup
+from jinja2 import Environment, FileSystemLoader
 
 
 def download_file(url, local_filename):
@@ -38,40 +39,11 @@ def download_artifacts_for_architecture(client, base_url, architecture, mini):
     return file_urls
 
 
-def main(version, mini):
-    version_url_part = version.capitalize() if version.lower() == "rawhide" else version
-    base_url = f"https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/"
-    # architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
-    architectures = ["x86_64"]
-    with httpx.Client() as client:
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            future_to_url = {}
-            for arch in architectures:
-                file_urls = download_artifacts_for_architecture(
-                    client, base_url, arch, mini
-                )
-                for file_url, filename in file_urls:
-                    os.makedirs(os.path.dirname(filename), exist_ok=True)
-                    future = executor.submit(download_file, file_url, filename)
-                    future_to_url[future] = filename
-            for future in as_completed(future_to_url):
-                filename = future_to_url[future]
-                try:
-                    data = future.result()
-                except Exception as exc:
-                    print(f"{filename} generated an exception: {exc}")
-                else:
-                    print(f"Downloaded {data}")
-                    decompress_artifact(filename, version)
-
-
-from jinja2 import Environment, FileSystemLoader
-
-
 def get_digest_from_index(index_path):
     with open(index_path, "r") as index_file:
         index_data = json.load(index_file)
     return index_data["manifests"][0]["digest"].split(":")[1]
+
 
 def copy_layer_blob_to_tar(extracted_path, digest):
     manifest_path = os.path.join(extracted_path, "blobs", "sha256", digest)
@@ -81,6 +53,7 @@ def copy_layer_blob_to_tar(extracted_path, digest):
     layer_path = os.path.join(extracted_path, "blobs", "sha256", layers_digest)
     shutil.copy(layer_path, os.path.join(extracted_path, "layer.tar"))
     print(f"Copied layer blob to 'layer.tar' in {extracted_path}.")
+
 
 def process_artifact(extracted_path, version):
     digest = get_digest_from_index(os.path.join(extracted_path, "index.json"))
@@ -111,6 +84,33 @@ def decompress_artifact(artifact_path, version):
         # Ensure we pass the directory path without the file extension
         decompressed_dir = os.path.split(artifact_path)[0]
         process_artifact(decompressed_dir, version)
+
+
+def main(version, mini):
+    version_url_part = version.capitalize() if version.lower() == "rawhide" else version
+    base_url = f"https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/"
+    architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
+    #architectures = ["x86_64"]
+    with httpx.Client() as client:
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            future_to_url = {}
+            for arch in architectures:
+                file_urls = download_artifacts_for_architecture(
+                    client, base_url, arch, mini
+                )
+                for file_url, filename in file_urls:
+                    os.makedirs(os.path.dirname(filename), exist_ok=True)
+                    future = executor.submit(download_file, file_url, filename)
+                    future_to_url[future] = filename
+            for future in as_completed(future_to_url):
+                filename = future_to_url[future]
+                try:
+                    data = future.result()
+                except Exception as exc:
+                    print(f"{filename} generated an exception: {exc}")
+                else:
+                    print(f"Downloaded {data}")
+                    decompress_artifact(filename, version)
 
 
 if __name__ == "__main__":
