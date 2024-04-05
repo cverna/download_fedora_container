@@ -117,14 +117,14 @@ def main(version, mini, output_dir):
                     future = executor.submit(download_file, file_url, output_path)
                     future_to_url[future] = filename
             for future in as_completed(future_to_url):
-                filename = future_to_url[future]
+                output_path = future_to_url[future]
                 try:
                     data = future.result()
                 except Exception as exc:
-                    print(f"{filename} generated an exception: {exc}")
+                    print(f"{output_path} generated an exception: {exc}")
                 else:
                     print(f"Downloaded {data}")
-                    decompress_artifact(filename, version)
+                    decompress_artifact(output_path, version)
 
 
 if __name__ == "__main__":
