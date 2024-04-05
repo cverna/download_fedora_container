@@ -55,6 +55,17 @@ def copy_layer_blob_to_tar(extracted_path, digest):
     print(f"Copied layer blob to 'layer.tar' in {extracted_path}.")
 
 
+def delete_extraction_artifacts(extracted_path):
+     """Delete the blobs/, index.json, and oci-layout from the extracted_path."""
+     blobs_path = os.path.join(extracted_path, "blobs")
+     index_json_path = os.path.join(extracted_path, "index.json")
+     oci_layout_path = os.path.join(extracted_path, "oci-layout")
+     shutil.rmtree(blobs_path, ignore_errors=True)
+     os.remove(index_json_path)
+     os.remove(oci_layout_path)
+     print(f"Deleted blobs/, index.json, and oci-layout from {extracted_path}.")
+
+
 def process_artifact(extracted_path, version):
     digest = get_digest_from_index(os.path.join(extracted_path, "index.json"))
     copy_layer_blob_to_tar(extracted_path, digest)
@@ -68,7 +79,6 @@ def process_artifact(extracted_path, version):
     with open(dockerfile_path, "w") as dockerfile:
         dockerfile.write(dockerfile_content)
     print(f"Rendered Dockerfile in {extracted_path}.")
-    
     delete_extraction_artifacts(extracted_path)
 
 
@@ -124,12 +134,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.version, args.mini)
-def delete_extraction_artifacts(extracted_path):
-    """Delete the blobs/, index.json, and oci-layout from the extracted_path."""
-    blobs_path = os.path.join(extracted_path, "blobs")
-    index_json_path = os.path.join(extracted_path, "index.json")
-    oci_layout_path = os.path.join(extracted_path, "oci-layout")
-    shutil.rmtree(blobs_path, ignore_errors=True)
-    os.remove(index_json_path, ignore_errors=True)
-    os.remove(oci_layout_path, ignore_errors=True)
-    print(f"Deleted blobs/, index.json, and oci-layout from {extracted_path}.")
