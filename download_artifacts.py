@@ -90,12 +90,14 @@ def decompress_artifact(artifact_path, version):
     if artifact_path.endswith(".tar.xz"):
         print(f"Decompressing {artifact_path}...")
         # Decompress the .xz file
-        subprocess.run(["xz", "-d", artifact_path], check=True)
-        # Extract the .tar file
+        # Decompress the .xz file using lzma
         tar_path = artifact_path.rstrip(".xz")
+        with lzma.open(artifact_path, 'rb') as compressed, open(tar_path, 'wb') as f:
+            shutil.copyfileobj(compressed, f)
+        # Extract the .tar file
         with tarfile.open(tar_path) as tar:
             tar.extractall(path=os.path.dirname(tar_path))
-        os.remove(tar_path)
+        os.remove(artifact_path)
         print(f"Decompressed and extracted {artifact_path}")
         # Ensure we pass the directory path without the file extension
         decompressed_dir = os.path.split(artifact_path)[0]
