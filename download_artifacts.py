@@ -76,7 +76,7 @@ def process_artifact(extracted_path, version):
     copy_layer_blob_to_tar(extracted_path, digest)
 
     # Render Dockerfile from template
-    env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates")))
+    env = Environment(loader=FileSystemLoader(os.path.join(os.getcwd(), "templates")))
     template = env.get_template("Dockerfile")
     rendered_version = "rawhide" if version.lower() == "rawhide" else f"f{version}"
     dockerfile_content = template.render(version=rendered_version)
