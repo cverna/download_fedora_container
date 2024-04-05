@@ -13,10 +13,14 @@ from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 
 
-def download_file(url, output_path):
+def download_file(client, url, output_path):
     local_filename = os.path.basename(output_path)
     print(f"Starting download of {local_filename}...")
-    subprocess.run(["curl", "-s", "-L", url, "-o", output_path], check=True)
+    with client.stream("GET", url) as response:
+        response.raise_for_status()
+        with open(output_path, 'wb') as f:
+            for chunk in response.iter_bytes():
+                f.write(chunk)
     return output_path
 
 
@@ -114,7 +118,7 @@ def main(version, mini, output_dir):
                     # Ensure the output directory structure is created
                     output_path = os.path.join(output_dir, filename)
                     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-                    future = executor.submit(download_file, file_url, output_path)
+                    future = executor.submit(download_file, client, file_url, output_path)
                     future_to_url[future] = filename
             for future in as_completed(future_to_url):
                 output_path = future_to_url[future]
