@@ -14,6 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 
 
 def download_file(url, output_path):
+    local_filename = os.path.basename(output_path)
     print(f"Starting download of {local_filename}...")
     subprocess.run(["curl", "-s", "-L", url, "-o", output_path], check=True)
     return output_path
