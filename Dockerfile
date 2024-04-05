@@ -4,4 +4,4 @@ ADD . /code
 
 RUN pip install -r /code/requirements.txt
 
-CMD ["python", "/code/download_artifacts.py"]
+ENTRYPOINT ["python", "/code/download_artifacts.py"]
