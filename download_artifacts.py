@@ -19,7 +19,7 @@ def download_file(client, url, output_path):
     print(f"Starting download of {local_filename}...")
     with client.stream("GET", url) as response:
         response.raise_for_status()
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             for chunk in response.iter_bytes():
                 f.write(chunk)
     return output_path
@@ -61,14 +61,14 @@ def copy_layer_blob_to_tar(extracted_path, digest):
 
 
 def delete_extraction_artifacts(extracted_path):
-     """Delete the blobs/, index.json, and oci-layout from the extracted_path."""
-     blobs_path = os.path.join(extracted_path, "blobs")
-     index_json_path = os.path.join(extracted_path, "index.json")
-     oci_layout_path = os.path.join(extracted_path, "oci-layout")
-     shutil.rmtree(blobs_path, ignore_errors=True)
-     os.remove(index_json_path)
-     os.remove(oci_layout_path)
-     print(f"Deleted blobs/, index.json, and oci-layout from {extracted_path}.")
+    """Delete the blobs/, index.json, and oci-layout from the extracted_path."""
+    blobs_path = os.path.join(extracted_path, "blobs")
+    index_json_path = os.path.join(extracted_path, "index.json")
+    oci_layout_path = os.path.join(extracted_path, "oci-layout")
+    shutil.rmtree(blobs_path, ignore_errors=True)
+    os.remove(index_json_path)
+    os.remove(oci_layout_path)
+    print(f"Deleted blobs/, index.json, and oci-layout from {extracted_path}.")
 
 
 def process_artifact(extracted_path, version):
@@ -76,7 +76,9 @@ def process_artifact(extracted_path, version):
     copy_layer_blob_to_tar(extracted_path, digest)
 
     # Render Dockerfile from template
-    env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates")))
+    env = Environment(
+        loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates"))
+    )
     template = env.get_template("Dockerfile")
     rendered_version = "rawhide" if version.lower() == "rawhide" else f"f{version}"
     dockerfile_content = template.render(version=rendered_version)
@@ -93,7 +95,7 @@ def decompress_artifact(artifact_path, version):
         # Decompress the .xz file
         # Decompress the .xz file using lzma
         tar_path = artifact_path.rstrip(".xz")
-        with lzma.open(artifact_path, 'rb') as compressed, open(tar_path, 'wb') as f:
+        with lzma.open(artifact_path, "rb") as compressed, open(tar_path, "wb") as f:
             shutil.copyfileobj(compressed, f)
         # Extract the .tar file
         with tarfile.open(tar_path) as tar:
@@ -111,7 +113,7 @@ def main(version, mini, output_dir):
     version_url_part = version.capitalize() if version.lower() == "rawhide" else version
     base_url = f"https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/"
     architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
-    #architectures = ["x86_64"]
+    # architectures = ["x86_64"]
     with httpx.Client() as client:
         with ThreadPoolExecutor(max_workers=4) as executor:
             future_to_url = {}
@@ -123,7 +125,9 @@ def main(version, mini, output_dir):
                     # Ensure the output directory structure is created
                     output_path = os.path.join(output_dir, filename)
                     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-                    future = executor.submit(download_file, client, file_url, output_path)
+                    future = executor.submit(
+                        download_file, client, file_url, output_path
+                    )
                     future_to_url[future] = filename
             for future in as_completed(future_to_url):
                 output_path = future_to_url[future]
@@ -139,8 +143,14 @@ def main(version, mini, output_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download Fedora container artifacts.")
     parser.add_argument("version", help="The version of Fedora artifacts to download.")
-    parser.add_argument("--output-dir", default=".", help="Directory where artifacts will be downloaded and extracted.")
-    parser.add_argument("--mini", action="store_true", help="Download only the minimal base artifact.")
+    parser.add_argument(
+        "--output-dir",
+        default=".",
+        help="Directory where artifacts will be downloaded and extracted.",
+    )
+    parser.add_argument(
+        "--mini", action="store_true", help="Download only the minimal base artifact."
+    )
     args = parser.parse_args()
 
     main(args.version, args.mini, args.output_dir)
