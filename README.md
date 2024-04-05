@@ -5,30 +5,16 @@
 To run the Fedora Artifact Downloader, you should set up a Python virtual environment. This ensures that the dependencies required by the project do not interfere with other Python projects or system-wide packages.
 
 1. Ensure you have Python installed on your system. Python 3.6 or higher is required.
-2. Install `virtualenv` if you haven't already:
+
+2. Create a virtual environment:
 
    ```bash
-   pip install virtualenv
+   python -m venv .venv
    ```
 
-3. Navigate to the project directory and create a virtual environment:
-
-   ```bash
-   virtualenv venv
-   ```
-
-4. Activate the virtual environment:
-
-   - On Windows:
-
+3. Activate the virtual environment:
      ```bash
-     .\venv\Scripts\activate
-     ```
-
-   - On macOS and Linux:
-
-     ```bash
-     source venv/bin/activate
+     source .venv/bin/activate
      ```
 
 5. Your command prompt should now reflect that you are working inside the 'venv' environment.
