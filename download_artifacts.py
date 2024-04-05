@@ -101,8 +101,8 @@ def decompress_artifact(artifact_path, version):
 def main(version, mini, output_dir):
     version_url_part = version.capitalize() if version.lower() == "rawhide" else version
     base_url = f"https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/"
-    architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
-    #architectures = ["x86_64"]
+    #architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
+    architectures = ["x86_64"]
     with httpx.Client() as client:
         with ThreadPoolExecutor(max_workers=4) as executor:
             future_to_url = {}
