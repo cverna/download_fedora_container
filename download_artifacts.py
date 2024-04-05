@@ -68,6 +68,15 @@ def process_artifact(extracted_path, version):
     with open(dockerfile_path, "w") as dockerfile:
         dockerfile.write(dockerfile_content)
     print(f"Rendered Dockerfile in {extracted_path}.")
+    
+    # Delete the blobs/, index.json, and oci-layout from the extracted_path
+    blobs_path = os.path.join(extracted_path, "blobs")
+    index_json_path = os.path.join(extracted_path, "index.json")
+    oci_layout_path = os.path.join(extracted_path, "oci-layout")
+    shutil.rmtree(blobs_path, ignore_errors=True)
+    os.remove(index_json_path)
+    os.remove(oci_layout_path)
+    print(f"Deleted blobs/, index.json, and oci-layout from {extracted_path}.")
 
 
 def decompress_artifact(artifact_path, version):
