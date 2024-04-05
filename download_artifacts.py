@@ -69,14 +69,7 @@ def process_artifact(extracted_path, version):
         dockerfile.write(dockerfile_content)
     print(f"Rendered Dockerfile in {extracted_path}.")
     
-    # Delete the blobs/, index.json, and oci-layout from the extracted_path
-    blobs_path = os.path.join(extracted_path, "blobs")
-    index_json_path = os.path.join(extracted_path, "index.json")
-    oci_layout_path = os.path.join(extracted_path, "oci-layout")
-    shutil.rmtree(blobs_path, ignore_errors=True)
-    os.remove(index_json_path)
-    os.remove(oci_layout_path)
-    print(f"Deleted blobs/, index.json, and oci-layout from {extracted_path}.")
+    delete_extraction_artifacts(extracted_path)
 
 
 def decompress_artifact(artifact_path, version):
@@ -131,3 +124,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.version, args.mini)
+def delete_extraction_artifacts(extracted_path):
+    """Delete the blobs/, index.json, and oci-layout from the extracted_path."""
+    blobs_path = os.path.join(extracted_path, "blobs")
+    index_json_path = os.path.join(extracted_path, "index.json")
+    oci_layout_path = os.path.join(extracted_path, "oci-layout")
+    shutil.rmtree(blobs_path, ignore_errors=True)
+    os.remove(index_json_path, ignore_errors=True)
+    os.remove(oci_layout_path, ignore_errors=True)
+    print(f"Deleted blobs/, index.json, and oci-layout from {extracted_path}.")
