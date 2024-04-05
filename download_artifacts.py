@@ -13,11 +13,10 @@ from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 
 
-def download_file(url, local_filename):
+def download_file(url, output_path):
     print(f"Starting download of {local_filename}...")
-    os.makedirs(os.path.dirname(local_filename), exist_ok=True)
-    subprocess.run(["curl", "-s", "-L", url, "-o", local_filename], check=True)
-    return local_filename
+    subprocess.run(["curl", "-s", "-L", url, "-o", output_path], check=True)
+    return output_path
 
 
 def download_artifacts_for_architecture(client, base_url, architecture, mini):
@@ -98,7 +97,7 @@ def decompress_artifact(artifact_path, version):
         process_artifact(decompressed_dir, version)
 
 
-def main(version, mini):
+def main(version, mini, output_dir):
     version_url_part = version.capitalize() if version.lower() == "rawhide" else version
     base_url = f"https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/"
     architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
@@ -111,8 +110,10 @@ def main(version, mini):
                     client, base_url, arch, mini
                 )
                 for file_url, filename in file_urls:
-                    os.makedirs(os.path.dirname(filename), exist_ok=True)
-                    future = executor.submit(download_file, file_url, filename)
+                    # Ensure the output directory structure is created
+                    output_path = os.path.join(output_dir, filename)
+                    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                    future = executor.submit(download_file, file_url, output_path)
                     future_to_url[future] = filename
             for future in as_completed(future_to_url):
                 filename = future_to_url[future]
@@ -128,9 +129,8 @@ def main(version, mini):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download Fedora container artifacts.")
     parser.add_argument("version", help="The version of Fedora artifacts to download.")
-    parser.add_argument(
-        "--mini", action="store_true", help="Download only the minimal base artifact."
-    )
+    parser.add_argument("--output-dir", default=".", help="Directory where artifacts will be downloaded and extracted.")
+    parser.add_argument("--mini", action="store_true", help="Download only the minimal base artifact.")
     args = parser.parse_args()
 
-    main(args.version, args.mini)
+    main(args.version, args.mini, args.output_dir)
