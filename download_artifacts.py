@@ -123,7 +123,7 @@ def main(version, mini, output_dir):
                 except Exception as exc:
                     print(f"{output_path} generated an exception: {exc}")
                 else:
-                    print(f"Downloaded {data}")
+                    print(f"Downloaded {data}, output path: {output_path}")
                     decompress_artifact(output_path, version)
 
 
