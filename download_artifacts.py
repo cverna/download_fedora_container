@@ -99,9 +99,11 @@ def decompress_artifact(artifact_path, version):
         with tarfile.open(tar_path) as tar:
             tar.extractall(path=os.path.dirname(tar_path))
         os.remove(artifact_path)
-        print(f"Decompressed and extracted {artifact_path}")
+        print(f"Decompressed and extracted {tar_path}")
+        os.remove(tar_path)
+        print(f"Deleted {tar_path}")
         # Ensure we pass the directory path without the file extension
-        decompressed_dir = os.path.split(artifact_path)[0]
+        decompressed_dir = os.path.split(tar_path)[0]
         process_artifact(decompressed_dir, version)
 
 
