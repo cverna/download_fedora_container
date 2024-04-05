@@ -86,7 +86,7 @@ def decompress_artifact(artifact_path, version):
     if artifact_path.endswith(".tar.xz"):
         print(f"Decompressing {artifact_path}...")
         # Decompress the .xz file
-        subprocess.run(["xz", "-d", artifact_path], check=True)
+        subprocess.run(["xz", "-d", os.path.join(os.getcwd(), artifact_path)], check=True)
         # Extract the .tar file
         tar_path = artifact_path.rstrip(".xz")
         with tarfile.open(tar_path) as tar:
