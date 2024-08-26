@@ -55,14 +55,14 @@ def get_tar_name():
     current_date = date.today().strftime("%Y%m%d")
     return f"fedora-{current_date}.tar"
 
-def copy_layer_blob_to_tar(extracted_path, digest, new_tar_name):
+def copy_layer_blob_to_tar(extracted_path, digest, tar_name):
     manifest_path = os.path.join(extracted_path, "blobs", "sha256", digest)
     with open(manifest_path, "r") as manifest_file:
         manifest_data = json.load(manifest_file)
     layers_digest = manifest_data["layers"][0]["digest"].split(":")[1]
     layer_path = os.path.join(extracted_path, "blobs", "sha256", layers_digest)
-    shutil.copy(layer_path, os.path.join(extracted_path, new_tar_name))
-    print(f"Copied layer blob to '{new_tar_name}' in {extracted_path}.")
+    shutil.copy(layer_path, os.path.join(extracted_path, tar_name))
+    print(f"Copied layer blob to '{tar_name}' in {extracted_path}.")
 
 
 def delete_extraction_artifacts(extracted_path):
