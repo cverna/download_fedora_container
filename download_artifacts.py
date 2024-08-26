@@ -51,7 +51,7 @@ def get_digest_from_index(index_path):
     return index_data["manifests"][0]["digest"].split(":")[1]
 
 
-def get_new_tar_name():
+def get_tar_name():
     current_date = date.today().strftime("%Y%m%d")
     return f"fedora-{current_date}.tar"
 
@@ -78,8 +78,8 @@ def delete_extraction_artifacts(extracted_path):
 
 def process_artifact(extracted_path, version):
     digest = get_digest_from_index(os.path.join(extracted_path, "index.json"))
-    new_tar_name = get_new_tar_name()
-    copy_layer_blob_to_tar(extracted_path, digest, new_tar_name)
+    tar_name = get_tar_name()
+    copy_layer_blob_to_tar(extracted_path, digest, tar_name)
 
     # Render Dockerfile from template
     env = Environment(
@@ -87,7 +87,7 @@ def process_artifact(extracted_path, version):
     )
     template = env.get_template("Dockerfile")
     rendered_version = "rawhide" if version.lower() == "rawhide" else f"f{version}"
-    dockerfile_content = template.render(version=rendered_version, tar_name=new_tar_name)
+    dockerfile_content = template.render(version=rendered_version, tar_name=tar_name)
     dockerfile_path = os.path.join(extracted_path, "Dockerfile")
     with open(dockerfile_path, "w") as dockerfile:
         dockerfile.write(dockerfile_content)
