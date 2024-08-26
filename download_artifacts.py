@@ -115,9 +115,10 @@ def decompress_artifact(artifact_path, version):
         process_artifact(decompressed_dir, version)
 
 
-def main(version, mini, output_dir, workers):
+def main(version, mini, output_dir, workers, branched):
     version_url_part = version.capitalize() if version.lower() == "rawhide" else version
-    base_url = f"https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/"
+    version_in_url = "branched" if branched else version
+    base_url = f"https://kojipkgs.fedoraproject.org/compose/{version_in_url}/latest-Fedora-{version_url_part}/compose/Container/"
     architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
     # architectures = ["x86_64"]
     with httpx.Client() as client:
@@ -160,6 +161,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--workers", type=int, default=5, help="Number of worker threads for downloading (default: 5)"
     )
+    parser.add_argument(
+        "--branched", action="store_true", help="Use 'branched' in the URL instead of the version number."
+    )
     args = parser.parse_args()
 
-    main(args.version, args.mini, args.output_dir, args.workers)
+    main(args.version, args.mini, args.output_dir, args.workers, args.branched)
