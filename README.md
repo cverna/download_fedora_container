@@ -32,17 +32,18 @@ pip install -r requirements.txt
 To run the Fedora Artifact Downloader, use the following command:
 
 ```bash
-python download_artifacts.py <version> [--output-dir <path>] [--mini]
+python download_artifacts.py <version> [--output-dir <path>] [--mini] [--workers <num>]
 ```
 
 - `<version>`: The version of Fedora artifacts to download (e.g., 34, 35, rawhide).
 - `--output-dir <path>`: (Optional) The directory where artifacts will be downloaded and extracted. Defaults to the current directory.
 - `--mini`: (Optional) If set, only the minimal base artifact will be downloaded.
+- `--workers <num>`: (Optional) Number of worker threads for downloading. Defaults to 5.
 
-For example, to download Fedora 35 artifacts to a specific directory, you would run:
+For example, to download Fedora 35 artifacts to a specific directory with 10 worker threads, you would run:
 
 ```bash
-python download_artifacts.py 35 --output-dir /path/to/output
+python download_artifacts.py 35 --output-dir /path/to/output --workers 10
 ```
 
 To deactivate the virtual environment when you're done, simply run:

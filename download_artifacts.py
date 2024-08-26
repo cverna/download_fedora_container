@@ -25,7 +25,7 @@ def download_file(client, url, output_path):
     return output_path
 
 
-def download_artifacts_for_architecture(client, base_url, architecture, mini):
+def download_artifacts_for_architecture(client, base_url, architecture, mini, workers):
     arch_url = urljoin(base_url, architecture + "/images/")
     response = client.get(arch_url)
     response.raise_for_status()
@@ -109,7 +109,7 @@ def decompress_artifact(artifact_path, version):
         process_artifact(decompressed_dir, version)
 
 
-def main(version, mini, output_dir):
+def main(version, mini, output_dir, workers):
     version_url_part = version.capitalize() if version.lower() == "rawhide" else version
     base_url = f"https://kojipkgs.fedoraproject.org/compose/{version}/latest-Fedora-{version_url_part}/compose/Container/"
     architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
