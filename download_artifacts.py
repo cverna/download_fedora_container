@@ -151,6 +151,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mini", action="store_true", help="Download only the minimal base artifact."
     )
+    parser.add_argument(
+        "--workers", type=int, default=5, help="Number of worker threads for downloading (default: 5)"
+    )
     args = parser.parse_args()
 
-    main(args.version, args.mini, args.output_dir)
+    main(args.version, args.mini, args.output_dir, args.workers)
