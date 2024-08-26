@@ -26,7 +26,7 @@ def download_file(client, url, output_path):
     return output_path
 
 
-def download_artifacts_for_architecture(client, base_url, architecture, mini, workers):
+def download_artifacts_for_architecture(client, base_url, architecture, mini):
     arch_url = urljoin(base_url, architecture + "/images/")
     response = client.get(arch_url)
     response.raise_for_status()
