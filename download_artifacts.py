@@ -115,7 +115,7 @@ def main(version, mini, output_dir, workers):
     architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
     # architectures = ["x86_64"]
     with httpx.Client() as client:
-        with ThreadPoolExecutor(max_workers=1) as executor:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
             future_to_url = {}
             for arch in architectures:
                 file_urls = download_artifacts_for_architecture(
