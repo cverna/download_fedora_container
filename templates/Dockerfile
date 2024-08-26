@@ -2,5 +2,5 @@
 FROM scratch
 LABEL maintainer="Clement Verna <cverna@fedoraproject.org>"
 ENV DISTTAG={{ version }}container FGC={{ version }} FBR={{ version }}
-ADD layer.tar /
+ADD {{ tar_name }} /
 CMD ["/bin/bash"]

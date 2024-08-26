@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+from datetime import date
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urljoin
 
@@ -56,8 +57,10 @@ def copy_layer_blob_to_tar(extracted_path, digest):
         manifest_data = json.load(manifest_file)
     layers_digest = manifest_data["layers"][0]["digest"].split(":")[1]
     layer_path = os.path.join(extracted_path, "blobs", "sha256", layers_digest)
-    shutil.copy(layer_path, os.path.join(extracted_path, "layer.tar"))
-    print(f"Copied layer blob to 'layer.tar' in {extracted_path}.")
+    current_date = date.today().strftime("%Y%m%d")
+    new_tar_name = f"fedora-{current_date}.tar"
+    shutil.copy(layer_path, os.path.join(extracted_path, new_tar_name))
+    print(f"Copied layer blob to '{new_tar_name}' in {extracted_path}.")
 
 
 def delete_extraction_artifacts(extracted_path):
@@ -75,13 +78,17 @@ def process_artifact(extracted_path, version):
     digest = get_digest_from_index(os.path.join(extracted_path, "index.json"))
     copy_layer_blob_to_tar(extracted_path, digest)
 
+    # Get the new tar file name
+    current_date = date.today().strftime("%Y%m%d")
+    new_tar_name = f"fedora-{current_date}.tar"
+
     # Render Dockerfile from template
     env = Environment(
         loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates"))
     )
     template = env.get_template("Dockerfile")
     rendered_version = "rawhide" if version.lower() == "rawhide" else f"f{version}"
-    dockerfile_content = template.render(version=rendered_version)
+    dockerfile_content = template.render(version=rendered_version, tar_name=new_tar_name)
     dockerfile_path = os.path.join(extracted_path, "Dockerfile")
     with open(dockerfile_path, "w") as dockerfile:
         dockerfile.write(dockerfile_content)
