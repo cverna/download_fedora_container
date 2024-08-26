@@ -115,9 +115,9 @@ def decompress_artifact(artifact_path, version):
         process_artifact(decompressed_dir, version)
 
 
-def main(version, mini, output_dir, workers, branched):
-    version_url_part = version.capitalize() if version.lower() == "rawhide" else version
-    version_in_url = "branched" if branched else version
+def main(version, mini, output_dir, workers, branched, rawhide):
+    version_url_part = "Rawhide" if rawhide else version
+    version_in_url = "rawhide" if rawhide else ("branched" if branched else version)
     base_url = f"https://kojipkgs.fedoraproject.org/compose/{version_in_url}/latest-Fedora-{version_url_part}/compose/Container/"
     architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
     # architectures = ["x86_64"]
@@ -164,6 +164,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--branched", action="store_true", help="Use 'branched' in the URL instead of the version number."
     )
+    parser.add_argument(
+        "--rawhide", action="store_true", help="Treat the version as Rawhide."
+    )
     args = parser.parse_args()
 
-    main(args.version, args.mini, args.output_dir, args.workers, args.branched)
+    main(args.version, args.mini, args.output_dir, args.workers, args.branched, args.rawhide)
