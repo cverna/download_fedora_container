@@ -159,7 +159,7 @@ if __name__ == "__main__":
         "--mini", action="store_true", help="Download only the minimal base artifact."
     )
     parser.add_argument(
-        "--workers", type=int, default=5, help="Number of worker threads for downloading (default: 5)"
+        "--workers", type=int, default=1, help="Number of worker threads for downloading (default: 5)"
     )
     parser.add_argument(
         "--branched", action="store_true", help="Use 'branched' in the URL instead of the version number."
