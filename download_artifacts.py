@@ -26,21 +26,18 @@ def download_file(client, url, output_path):
     return output_path
 
 
-def download_artifacts_for_architecture(client, base_url, architecture, mini):
-    arch_url = urljoin(base_url, architecture + "/images/")
-    response = client.get(arch_url)
+def download_artifacts_for_architecture(client, base_url, architecture):
+    response = client.get(base_url)
     response.raise_for_status()
     text = response.text
     soup = BeautifulSoup(text, "html.parser")
     file_urls = [
         (
-            urljoin(arch_url, link.get("href")),
+            urljoin(base_url, link.get("href")),
             os.path.join(architecture, link.get("href")),
         )
         for link in soup.find_all("a")
-        if link.get("href").endswith(".tar.xz")
-        and "Base" in link.get("href")
-        and (mini or "Minimal" not in link.get("href"))
+        if link.get("href").endswith(".tar.xz") and architecture in link.get("href")
     ]
     return file_urls
 
@@ -50,9 +47,11 @@ def get_digest_from_index(index_path):
         index_data = json.load(index_file)
     return index_data["manifests"][0]["digest"].split(":")[1]
 
+def get_current_date():
+    return date.today().strftime("%Y%m%d")
 
 def get_tar_name():
-    current_date = date.today().strftime("%Y%m%d")
+    current_date = get_current_date()
     return f"fedora-{current_date}.tar"
 
 def copy_layer_blob_to_tar(extracted_path, digest, tar_name):
@@ -115,18 +114,18 @@ def decompress_artifact(artifact_path, version):
         process_artifact(decompressed_dir, version)
 
 
-def main(version, mini, output_dir, workers, branched, rawhide):
+def main(version, output_dir, workers, branched, rawhide):
     version_url_part = "Rawhide" if rawhide else version
     version_in_url = "rawhide" if rawhide else ("branched" if branched else version)
-    base_url = f"https://kojipkgs.fedoraproject.org/compose/{version_in_url}/latest-Fedora-{version_url_part}/compose/Container/"
+    base_url = f"https://kojipkgs.fedoraproject.org/packages/Fedora-Container-Base-Generic/{version_in_url}/{get_current_date()}.0/images/"
     architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
     # architectures = ["x86_64"]
-    with httpx.Client() as client:
+    with httpx.Client(follow_redirects=True) as client:
         with ThreadPoolExecutor(max_workers=workers) as executor:
             future_to_url = {}
             for arch in architectures:
                 file_urls = download_artifacts_for_architecture(
-                    client, base_url, arch, mini
+                    client, base_url, arch
                 )
                 for file_url, filename in file_urls:
                     # Ensure the output directory structure is created
@@ -156,10 +155,7 @@ if __name__ == "__main__":
         help="Directory where artifacts will be downloaded and extracted.",
     )
     parser.add_argument(
-        "--mini", action="store_true", help="Download only the minimal base artifact."
-    )
-    parser.add_argument(
-        "--workers", type=int, default=1, help="Number of worker threads for downloading (default: 5)"
+        "--workers", type=int, default=1, help="Number of worker threads for downloading (default: 1)"
     )
     parser.add_argument(
         "--branched", action="store_true", help="Use 'branched' in the URL instead of the version number."
@@ -169,4 +165,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    main(args.version, args.mini, args.output_dir, args.workers, args.branched, args.rawhide)
+    main(args.version, args.output_dir, args.workers, args.branched, args.rawhide)
