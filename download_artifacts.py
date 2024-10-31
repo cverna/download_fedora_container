@@ -115,9 +115,12 @@ def decompress_artifact(artifact_path, version):
 
 
 def main(version, output_dir, workers, branched, rawhide):
-    version_url_part = "Rawhide" if rawhide else version
-    version_in_url = "rawhide" if rawhide else ("branched" if branched else version)
-    base_url = f"https://kojipkgs.fedoraproject.org/packages/Fedora-Container-Base-Generic/{version_in_url}/{get_current_date()}.0/images/"
+    if rawhide:
+        base_url = f"https://kojipkgs.fedoraproject.org/packages/Fedora-Container-Base-Generic/Rawhide/{get_current_date()}.n.0/images/"
+    elif branched:
+        base_url = f"https://kojipkgs.fedoraproject.org/packages/Fedora-Container-Base-Generic/{version}/{get_current_date()}.n.0/images/"
+    else:
+        base_url = f"https://kojipkgs.fedoraproject.org/packages/Fedora-Container-Base-Generic/{version}/{get_current_date()}.0/images/"
     architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
     # architectures = ["x86_64"]
     with httpx.Client(follow_redirects=True) as client:
