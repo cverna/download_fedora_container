@@ -17,7 +17,7 @@ from jinja2 import Environment, FileSystemLoader
 
 def download_file(client, url, output_path):
     local_filename = os.path.basename(output_path)
-    print(f"Starting download of {local_filename}...")
+    print(f"Starting download of {url}...")
     with client.stream("GET", url) as response:
         response.raise_for_status()
         with open(output_path, "wb") as f:
@@ -123,7 +123,7 @@ def main(version, output_dir, workers, branched, rawhide):
         base_url = f"https://kojipkgs.fedoraproject.org/packages/Fedora-Container-Base-Generic/{version}/{get_current_date()}.0/images/"
     architectures = ["aarch64", "ppc64le", "s390x", "x86_64"]
     # architectures = ["x86_64"]
-    with httpx.Client(follow_redirects=True) as client:
+    with httpx.Client(follow_redirects=True, timeout=None) as client:
         with ThreadPoolExecutor(max_workers=workers) as executor:
             future_to_url = {}
             for arch in architectures:
