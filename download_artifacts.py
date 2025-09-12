@@ -8,6 +8,7 @@ import sys
 import tarfile
 from datetime import date
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import wraps
 from urllib.parse import urljoin
 
 import httpx
@@ -15,6 +16,56 @@ from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 
 
+def handle_http_errors(operation_name, return_on_404=None):
+    """
+    Decorator to handle HTTP errors consistently across functions.
+
+    Args:
+        operation_name: Description of the operation for error messages
+        return_on_404: Value to return on 404 errors (if None, raises the exception)
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except httpx.HTTPStatusError as e:
+                url = getattr(e.request, "url", "Unknown URL")
+                response_text = getattr(e.response, "text", "")
+
+                if e.response.status_code == 404:
+                    if return_on_404 is not None:
+                        print(f"Warning: {operation_name} - HTTP 404 Not Found")
+                        print(f"  URL: {url}")
+                        return return_on_404
+                    else:
+                        print(f"Error: {operation_name} - HTTP 404 Not Found")
+                        print(f"  URL: {url}")
+                        raise
+                else:
+                    print(f"Error: {operation_name} - HTTP {e.response.status_code}")
+                    print(f"  URL: {url}")
+                    raise
+            except httpx.RequestError as e:
+                url = (
+                    getattr(e.request, "url", "Unknown URL")
+                    if hasattr(e, "request")
+                    else "Unknown URL"
+                )
+                print(f"Error: {operation_name} - Network error: {e}")
+                print(f"  URL: {url}")
+                raise
+            except Exception as e:
+                print(f"Error: {operation_name} - Unexpected error: {e}")
+                raise
+
+        return wrapper
+
+    return decorator
+
+
+@handle_http_errors("Downloading file")
 def download_file(client, url, output_path):
     local_filename = os.path.basename(output_path)
     print(f"Starting download of {url}...")
@@ -26,6 +77,7 @@ def download_file(client, url, output_path):
     return output_path
 
 
+@handle_http_errors("Fetching artifacts for architecture", return_on_404=[])
 def download_artifacts_for_architecture(client, base_url, architecture):
     response = client.get(base_url)
     response.raise_for_status()
@@ -127,9 +179,7 @@ def main(version, output_dir, workers, branched, rawhide):
         with ThreadPoolExecutor(max_workers=workers) as executor:
             future_to_url = {}
             for arch in architectures:
-                file_urls = download_artifacts_for_architecture(
-                    client, base_url, arch
-                )
+                file_urls = download_artifacts_for_architecture(client, base_url, arch)
                 for file_url, filename in file_urls:
                     # Ensure the output directory structure is created
                     output_path = os.path.join(output_dir, filename)
@@ -158,10 +208,15 @@ if __name__ == "__main__":
         help="Directory where artifacts will be downloaded and extracted.",
     )
     parser.add_argument(
-        "--workers", type=int, default=1, help="Number of worker threads for downloading (default: 1)"
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of worker threads for downloading (default: 1)",
     )
     parser.add_argument(
-        "--branched", action="store_true", help="Use 'branched' in the URL instead of the version number."
+        "--branched",
+        action="store_true",
+        help="Use 'branched' in the URL instead of the version number.",
     )
     parser.add_argument(
         "--rawhide", action="store_true", help="Treat the version as Rawhide."
