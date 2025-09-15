@@ -8,6 +8,7 @@ import sys
 import tarfile
 from datetime import date
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import wraps
 from urllib.parse import urljoin
 
 import httpx
@@ -15,6 +16,56 @@ from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 
 
+def handle_http_errors(operation_name, return_on_404=None):
+    """
+    Decorator to handle HTTP errors consistently across functions.
+
+    Args:
+        operation_name: Description of the operation for error messages
+        return_on_404: Value to return on 404 errors (if None, raises the exception)
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except httpx.HTTPStatusError as e:
+                url = getattr(e.request, "url", "Unknown URL")
+                response_text = getattr(e.response, "text", "")
+
+                if e.response.status_code == 404:
+                    if return_on_404 is not None:
+                        print(f"Warning: {operation_name} - HTTP 404 Not Found")
+                        print(f"  URL: {url}")
+                        return return_on_404
+                    else:
+                        print(f"Error: {operation_name} - HTTP 404 Not Found")
+                        print(f"  URL: {url}")
+                        raise
+                else:
+                    print(f"Error: {operation_name} - HTTP {e.response.status_code}")
+                    print(f"  URL: {url}")
+                    raise
+            except httpx.RequestError as e:
+                url = (
+                    getattr(e.request, "url", "Unknown URL")
+                    if hasattr(e, "request")
+                    else "Unknown URL"
+                )
+                print(f"Error: {operation_name} - Network error: {e}")
+                print(f"  URL: {url}")
+                raise
+            except Exception as e:
+                print(f"Error: {operation_name} - Unexpected error: {e}")
+                raise
+
+        return wrapper
+
+    return decorator
+
+
+@handle_http_errors("Downloading file")
 def download_file(client, url, output_path):
     local_filename = os.path.basename(output_path)
     print(f"Starting download of {url}...")
@@ -26,6 +77,7 @@ def download_file(client, url, output_path):
     return output_path
 
 
+@handle_http_errors("Fetching artifacts for architecture", return_on_404=[])
 def download_artifacts_for_architecture(client, base_url, architecture):
     response = client.get(base_url)
     response.raise_for_status()
@@ -42,17 +94,93 @@ def download_artifacts_for_architecture(client, base_url, architecture):
     return file_urls
 
 
+def download_artifacts_with_retry(
+    client, base_url, architecture, max_days_back=7, no_retry=False
+):
+    """
+    Download artifacts for an architecture with retry logic for 404 errors.
+
+    Args:
+        client: HTTP client
+        base_url: Base URL to try
+        architecture: Target architecture
+        max_days_back: Maximum number of days to look back
+        no_retry: If True, disable retry logic
+
+    Returns:
+        List of (file_url, filename) tuples, or empty list if no artifacts found
+    """
+    if no_retry:
+        return download_artifacts_for_architecture(client, base_url, architecture)
+
+    # Extract date from the base URL
+    current_date = get_current_date()
+
+    # Generate URL variants to try
+    url_variants = generate_url_variants(base_url, current_date, max_days_back)
+
+    for i, url in enumerate(url_variants):
+        try:
+            file_urls = download_artifacts_for_architecture(client, url, architecture)
+            if file_urls:
+                return file_urls
+            else:
+                print(f"  - No artifacts found for {architecture}")
+
+        except Exception as e:
+            print(f"  ✗ Error: {e}")
+            continue
+
+    print(
+        f"  No artifacts found for {architecture} after trying {len(url_variants)} dates"
+    )
+    return []
+
+
 def get_digest_from_index(index_path):
     with open(index_path, "r") as index_file:
         index_data = json.load(index_file)
     return index_data["manifests"][0]["digest"].split(":")[1]
 
+
 def get_current_date():
     return date.today().strftime("%Y%m%d")
+
+
+def get_previous_date(date_str, days_back=1):
+    """Get a previous date by subtracting the specified number of days."""
+    from datetime import datetime, timedelta
+
+    date_obj = datetime.strptime(date_str, "%Y%m%d")
+    previous_date = date_obj - timedelta(days=days_back)
+    return previous_date.strftime("%Y%m%d")
+
+
+def generate_url_variants(base_url, date_str, max_days_back=7):
+    """Generate a list of URLs with previous dates for retry logic."""
+    urls = [base_url]  # Start with the original URL
+
+    # Extract the date pattern from the URL and replace it with previous dates
+    for days_back in range(1, max_days_back + 1):
+        previous_date = get_previous_date(date_str, days_back)
+
+        # Replace the date in the URL pattern
+        if ".n.0/images/" in base_url:
+            # For rawhide and branched versions
+            variant_url = base_url.replace(f"{date_str}.n.0", f"{previous_date}.n.0")
+        else:
+            # For regular versions
+            variant_url = base_url.replace(f"{date_str}.0", f"{previous_date}.0")
+
+        urls.append(variant_url)
+
+    return urls
+
 
 def get_tar_name():
     current_date = get_current_date()
     return f"fedora-{current_date}.tar"
+
 
 def copy_layer_blob_to_tar(extracted_path, digest, tar_name):
     manifest_path = os.path.join(extracted_path, "blobs", "sha256", digest)
@@ -114,7 +242,9 @@ def decompress_artifact(artifact_path, version):
         process_artifact(decompressed_dir, version)
 
 
-def main(version, output_dir, workers, branched, rawhide):
+def main(
+    version, output_dir, workers, branched, rawhide, max_days_back=3, no_retry=False
+):
     if rawhide:
         base_url = f"https://kojipkgs.fedoraproject.org/packages/Fedora-Container-Base-Generic/Rawhide/{get_current_date()}.n.0/images/"
     elif branched:
@@ -127,8 +257,8 @@ def main(version, output_dir, workers, branched, rawhide):
         with ThreadPoolExecutor(max_workers=workers) as executor:
             future_to_url = {}
             for arch in architectures:
-                file_urls = download_artifacts_for_architecture(
-                    client, base_url, arch
+                file_urls = download_artifacts_with_retry(
+                    client, base_url, arch, max_days_back, no_retry
                 )
                 for file_url, filename in file_urls:
                     # Ensure the output directory structure is created
@@ -158,14 +288,38 @@ if __name__ == "__main__":
         help="Directory where artifacts will be downloaded and extracted.",
     )
     parser.add_argument(
-        "--workers", type=int, default=1, help="Number of worker threads for downloading (default: 1)"
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of worker threads for downloading (default: 1)",
     )
     parser.add_argument(
-        "--branched", action="store_true", help="Use 'branched' in the URL instead of the version number."
+        "--branched",
+        action="store_true",
+        help="Use 'branched' in the URL instead of the version number.",
     )
     parser.add_argument(
         "--rawhide", action="store_true", help="Treat the version as Rawhide."
     )
+    parser.add_argument(
+        "--max-days-back",
+        type=int,
+        default=7,
+        help="Maximum number of days to look back when retrying 404 errors (default: 7)",
+    )
+    parser.add_argument(
+        "--no-retry",
+        action="store_true",
+        help="Disable retry logic and fail immediately on 404 errors",
+    )
     args = parser.parse_args()
 
-    main(args.version, args.output_dir, args.workers, args.branched, args.rawhide)
+    main(
+        args.version,
+        args.output_dir,
+        args.workers,
+        args.branched,
+        args.rawhide,
+        args.max_days_back,
+        args.no_retry,
+    )
