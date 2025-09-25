@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import yaml
 from datetime import date
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
@@ -15,6 +16,8 @@ import httpx
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 
+FEDORA_BRANCHED_URL = "https://pagure.io/fedora-infra/ansible/raw/main/f/vars/all/FedoraBranched.yaml"
+FEDORA_CYCLE_NUMBER_URL = "https://pagure.io/fedora-infra/ansible/raw/main/f/vars/all/00-FedoraCycleNumber.yaml"
 
 def handle_http_errors(operation_name, return_on_404=None):
     """
@@ -242,12 +245,27 @@ def decompress_artifact(artifact_path, version):
         process_artifact(decompressed_dir, version)
 
 
+def get_fedora_yaml(key):
+    if key == "FedoraBranched":
+        url = FEDORA_BRANCHED_URL
+    elif key == "FedoraCycleNumber":
+        url = FEDORA_CYCLE_NUMBER_URL
+    response = httpx.get(url)
+    response.raise_for_status()
+    content_as_yaml = yaml.safe_load(response.text)
+    return content_as_yaml.get(key, None)
+
+
 def main(
-    version, output_dir, workers, branched, rawhide, max_days_back=3, no_retry=False
+    version, output_dir, workers, max_days_back=3, no_retry=False
 ):
-    if rawhide:
+    cycle_number = get_fedora_yaml("FedoraCycleNumber")
+    branched_version = cycle_number + 1 if get_fedora_yaml("FedoraBranched") else 0
+    rawhide_version = branched_version + 1 if get_fedora_yaml("FedoraBranched") else cycle_number + 1
+
+    if version == str(rawhide_version):
         base_url = f"https://kojipkgs.fedoraproject.org/packages/Fedora-Container-Base-Generic/Rawhide/{get_current_date()}.n.0/images/"
-    elif branched:
+    elif version == str(branched_version):
         base_url = f"https://kojipkgs.fedoraproject.org/packages/Fedora-Container-Base-Generic/{version}/{get_current_date()}.n.0/images/"
     else:
         base_url = f"https://kojipkgs.fedoraproject.org/packages/Fedora-Container-Base-Generic/{version}/{get_current_date()}.0/images/"
@@ -294,14 +312,6 @@ if __name__ == "__main__":
         help="Number of worker threads for downloading (default: 1)",
     )
     parser.add_argument(
-        "--branched",
-        action="store_true",
-        help="Use 'branched' in the URL instead of the version number.",
-    )
-    parser.add_argument(
-        "--rawhide", action="store_true", help="Treat the version as Rawhide."
-    )
-    parser.add_argument(
         "--max-days-back",
         type=int,
         default=7,
@@ -318,8 +328,6 @@ if __name__ == "__main__":
         args.version,
         args.output_dir,
         args.workers,
-        args.branched,
-        args.rawhide,
         args.max_days_back,
         args.no_retry,
     )
