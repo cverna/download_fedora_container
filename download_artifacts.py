@@ -16,8 +16,8 @@ import httpx
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 
-FEDORA_BRANCHED_URL = "https://pagure.io/fedora-infra/ansible/raw/main/f/vars/all/FedoraBranched.yaml"
-FEDORA_CYCLE_NUMBER_URL = "https://pagure.io/fedora-infra/ansible/raw/main/f/vars/all/00-FedoraCycleNumber.yaml"
+FEDORA_BRANCHED_URL = "https://forge.fedoraproject.org/infra/ansible/raw/branch/main/vars/all/FedoraBranched.yaml"
+FEDORA_CYCLE_NUMBER_URL = "https://forge.fedoraproject.org/infra/ansible/raw/branch/main/vars/all/00-FedoraCycleNumber.yaml"
 
 def handle_http_errors(operation_name, return_on_404=None):
     """
